@@ -1,0 +1,60 @@
+# --- Sistema / IDEs ---
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+!.vscode/extensions.json
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
+venv/
+.env
+.env.*
+.pytest_cache/
+coverage/
+dist/
+build/
+
+# --- Node / Web ---
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/
+.yarn/cache/
+.next/
+out/
+dist/
+build/
+.cache/
+.parcel-cache/
+
+# --- Logs / salidas / evidencias ---
+*.log
+logs/
+evidencias/
+evidencias_said/
+screenshots/
+reports/
+
+# --- Scratch (experimentos que no van a prod) ---
+scratch/
+tmp/
+*.tmp
+
+# --- SO / Office ---
+~$*.doc*
+~$*.xls*
+*.tmp
+*.bak
+
+# --- Infra ---
+terraform.tfstate
+terraform.tfstate.*
+.terraform/
