@@ -12,3 +12,4 @@ Ver README espec√≠fico dentro de cada app. Incluye `.env.example` con variables 
 ## Calidad
 - CI en GitHub Actions: lint y tests condicionales.
 - Plantillas de PR/Issue y CODEOWNERS.
+"Peque§o cambio de prueba para PR" 
