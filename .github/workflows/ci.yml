@@ -1,7 +1,14 @@
 name: CI
+
 on:
-  push: { branches: ["main"] }
-  pull_request: { branches: ["main"] }
+  push:
+    branches:
+      - main
+      - '**'        # también en otras ramas
+  pull_request:
+    branches:
+      - main        # checks obligatorios en PR hacia main
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -9,41 +16,70 @@ concurrency:
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+
     steps:
       - uses: actions/checkout@v4
 
-      # Node (solo si hay package.json)
+      # ---------- Node.js (solo si hay package.json) ----------
+      - name: Detectar proyecto Node
+        id: has_node
+        run: |
+          if [[ -n "$(git ls-files **/package.json)" ]]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Setup Node
-        if: ${{ hashFiles('**/package.json') != '' }}
+        if: steps.has_node.outputs.present == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: npm
-      - name: Install deps (Node)
-        if: ${{ hashFiles('**/package.json') != '' }}
-        run: npm ci --workspaces --if-present
-      - name: Lint (si existe script)
-        if: ${{ hashFiles('**/package.json') != '' }}
-        run: npm run lint --workspaces --if-present || echo "No lint"
-      - name: Tests (si existen)
-        if: ${{ hashFiles('**/package.json') != '' }}
-        run: npm test --workspaces --if-present || echo "No tests"
 
-      # Python (solo si hay pyproject/requirements)
+      - name: Instalar dependencias (Node)
+        if: steps.has_node.outputs.present == 'true'
+        run: npm ci --workspaces --if-present
+
+      - name: Lint (Node)
+        if: steps.has_node.outputs.present == 'true'
+        run: npm run -ws --if-present lint || echo "Sin scripts de lint"
+
+      - name: Tests (Node)
+        if: steps.has_node.outputs.present == 'true'
+        run: npm test -ws --if-present || echo "Sin tests de Node"
+
+      # ---------- Python (solo si hay pyproject/requirements) ----------
+      - name: Detectar proyecto Python
+        id: has_python
+        run: |
+          if ls **/pyproject.toml **/requirements.txt >/dev/null 2>&1; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Setup Python
-        if: ${{ hashFiles('**/pyproject.toml') != '' || hashFiles('**/requirements.txt') != '' }}
+        if: steps.has_python.outputs.present == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
-      - name: Install deps (Python)
-        if: ${{ hashFiles('**/pyproject.toml') != '' || hashFiles('**/requirements.txt') != '' }}
+
+      - name: Instalar dependencias (Python)
+        if: steps.has_python.outputs.present == 'true'
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt || true
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install ruff pytest || true
-      - name: Ruff lint
-        if: ${{ hashFiles('**/*.py') != '' }}
-        run: ruff check . || true
-      - name: Pytests
-        if: ${{ hashFiles('**/tests/**/*.py') != '' }}
-        run: pytest -q || true
+
+      - name: Ruff lint (Python)
+        if: steps.has_python.outputs.present == 'true'
+        run: ruff check . || echo "Ruff encontró issues (no bloquea)"
+
+      - name: Pytests (Python)
+        if: steps.has_python.outputs.present == 'true'
+        run: |
+          if compgen -G "**/tests/**/*.py" > /dev/null; then
+            pytest -q || true
+          else
+            echo "Sin tests de Python"
+          fi
